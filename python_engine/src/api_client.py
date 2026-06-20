@@ -29,18 +29,23 @@ class HostingerApiClient:
         timestamp = str(int(time.time()))
         raw_body = encode_payload(payload)
         signature = build_signature(timestamp, raw_body, self.hmac_secret)
+        url = f"{self.base_url}/index.php"
         response = requests.post(
-            f"{self.base_url}/index.php",
+            url,
             data=raw_body,
             headers={
                 "Content-Type": "application/json",
+                "Accept": "application/json",
+                "User-Agent": "dse-paper-trading-engine/1.0 (+https://dse.rkpolin.com)",
                 "X-API-Token": self.api_token,
                 "X-Timestamp": timestamp,
                 "X-Signature": signature,
             },
             timeout=self.timeout,
         )
-        response.raise_for_status()
+        if response.status_code >= 400:
+            body_preview = response.text[:800].replace(self.api_token, "***")
+            raise RuntimeError(f"Hostinger API returned HTTP {response.status_code} for {url}: {body_preview}")
         return response.json()
 
 

@@ -59,3 +59,28 @@ def test_paper_trader_respects_max_open_positions() -> None:
     )
     assert result["summary"]["open_positions"] == 1
     assert len([trade for trade in result["trades"] if trade["side"] == "BUY"]) == 1
+
+
+def test_paper_trader_does_not_rebuy_same_symbol_after_same_day_exit() -> None:
+    start = date(2026, 1, 1)
+    prices = pd.DataFrame(
+        [
+            {"symbol": "AAA", "date": start, "open": 100, "high": 101, "low": 99, "close": 100, "volume": 1000},
+            {"symbol": "AAA", "date": start + timedelta(days=1), "open": 109, "high": 111, "low": 108, "close": 109, "volume": 1000},
+        ]
+    )
+    signals = pd.DataFrame(
+        [
+            {"symbol": "AAA", "date": start, "signal_type": "BUY", "confidence": 0.9},
+            {"symbol": "AAA", "date": start + timedelta(days=1), "signal_type": "BUY", "confidence": 0.9},
+        ]
+    )
+    result = simulate_paper_trades(
+        prices,
+        signals,
+        "run-test",
+        TradingRules(initial_balance=100000, transaction_cost_pct=0.005),
+    )
+    assert [trade["side"] for trade in result["trades"]] == ["BUY", "SELL"]
+    assert result["trades"][1]["reason"] == "TAKE_PROFIT"
+    assert result["summary"]["open_positions"] == 0

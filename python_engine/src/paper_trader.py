@@ -55,6 +55,7 @@ def simulate_paper_trades(
     for date_value in sorted(prices_by_date):
         day_prices = prices_by_date[date_value]
         day_signals = signals_by_date.get(date_value, pd.DataFrame())
+        exited_symbols_today: set[str] = set()
 
         for symbol in list(positions):
             if symbol not in day_prices.index:
@@ -76,12 +77,15 @@ def simulate_paper_trades(
                 )
                 realized_pl += realized
                 del positions[symbol]
+                exited_symbols_today.add(symbol)
 
         if not day_signals.empty:
             buy_signals = day_signals[day_signals["signal_type"] == "BUY"]
             for _, signal in buy_signals.iterrows():
                 symbol = str(signal["symbol"])
                 if symbol in positions:
+                    continue
+                if symbol in exited_symbols_today:
                     continue
                 if len(positions) >= rules.max_open_positions:
                     continue

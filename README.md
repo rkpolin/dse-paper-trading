@@ -33,6 +33,7 @@ docs/                Beginner setup guide
 - Stop loss: -5%
 - Take profit: +8%
 - No duplicate `BUY` if already holding the same stock
+- No same-day re-buy after a stock is sold by stop loss, take profit, or sell signal
 - Every run has a unique `run_id`
 - Database upserts prevent duplicate inserts from retries
 

@@ -1,0 +1,47 @@
+name: Run DSE Paper Trader
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Bangladesh time is UTC+6. Runs Sunday-Thursday during market hours.
+    - cron: "15 4-7 * * 0-4"
+    # Extra post-close run for end-of-day snapshot.
+    - cron: "5 8 * * 0-4"
+
+jobs:
+  paper-trader:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: python_engine/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r python_engine/requirements.txt
+
+      - name: Run tests
+        run: pytest python_engine/tests
+
+      - name: Run paper trading engine
+        env:
+          CSV_PATH: python_engine/sample_data/dse_demo_prices.csv
+          DATA_SOURCE: auto
+          DSE_LATEST_URL: https://www.dsebd.org/latest_share_price_scroll_l.php
+          DSE_MARKET_STATUS_URL: https://www.dsebd.org/mst.txt
+          DSE_ARCHIVE_URL: https://www.dsebd.org/day_end_archive.php
+          DSE_ARCHIVE_LOOKBACK_DAYS: "120"
+          MERGE_DSE_WITH_CSV: "true"
+          HOSTINGER_API_BASE_URL: ${{ secrets.HOSTINGER_API_BASE_URL }}
+          HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
+          HOSTINGER_HMAC_SECRET: ${{ secrets.HOSTINGER_HMAC_SECRET }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python python_engine/run_engine.py

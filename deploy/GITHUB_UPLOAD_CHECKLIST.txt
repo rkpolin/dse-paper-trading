@@ -1,0 +1,21 @@
+Upload or push these files to GitHub for automatic DSE archive/latest data:
+
+.github/workflows/run-paper-trader.yml
+python_engine/.env.example
+python_engine/run_engine.py
+python_engine/src/api_client.py
+python_engine/src/config.py
+python_engine/src/data_loader.py
+python_engine/src/dse_fetcher.py
+python_engine/src/paper_trader.py
+python_engine/tests/test_dse_fetcher.py
+python_engine/tests/test_paper_trader.py
+README.md
+DEPLOYMENT.md
+docs/SETUP_FOR_BEGINNERS.md
+
+After upload, confirm this file exists on GitHub:
+python_engine/src/dse_fetcher.py
+
+Then run:
+Actions -> Run DSE Paper Trader -> Run workflow

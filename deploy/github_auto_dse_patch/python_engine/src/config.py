@@ -49,8 +49,6 @@ class EngineConfig:
     data_source: str
     dse_latest_url: str
     dse_market_status_url: str
-    dse_archive_url: str
-    dse_archive_lookback_days: int
     dse_symbols: tuple[str, ...]
     merge_dse_with_csv: bool
     initial_balance: float
@@ -85,8 +83,6 @@ class EngineConfig:
             data_source=_env_str("DATA_SOURCE", "auto").lower(),
             dse_latest_url=_env_str("DSE_LATEST_URL", "https://www.dsebd.org/latest_share_price_scroll_l.php"),
             dse_market_status_url=_env_str("DSE_MARKET_STATUS_URL", "https://www.dsebd.org/mst.txt"),
-            dse_archive_url=_env_str("DSE_ARCHIVE_URL", "https://www.dsebd.org/day_end_archive.php"),
-            dse_archive_lookback_days=_env_int("DSE_ARCHIVE_LOOKBACK_DAYS", 120),
             dse_symbols=symbols,
             merge_dse_with_csv=_env_str("MERGE_DSE_WITH_CSV", "true").lower() in {"1", "true", "yes", "on"},
             initial_balance=_env_float("INITIAL_BALANCE_BDT", 100000.0),

@@ -95,7 +95,7 @@ The GitHub workflow is configured with:
 DATA_SOURCE=auto
 ```
 
-It fetches DSE day-end archive history and the public latest share price table during each run. You do not need to manually edit the sample CSV for daily updates. The sample CSV stays as fallback data.
+It fetches the public DSE latest share price table during each run. You do not need to manually edit the sample CSV for daily updates. The sample CSV stays as fallback/history data.
 
 ## Part F: If Something Breaks
 

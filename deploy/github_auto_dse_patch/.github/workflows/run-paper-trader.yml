@@ -36,8 +36,6 @@ jobs:
           DATA_SOURCE: auto
           DSE_LATEST_URL: https://www.dsebd.org/latest_share_price_scroll_l.php
           DSE_MARKET_STATUS_URL: https://www.dsebd.org/mst.txt
-          DSE_ARCHIVE_URL: https://www.dsebd.org/day_end_archive.php
-          DSE_ARCHIVE_LOOKBACK_DAYS: "120"
           MERGE_DSE_WITH_CSV: "true"
           HOSTINGER_API_BASE_URL: ${{ secrets.HOSTINGER_API_BASE_URL }}
           HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}

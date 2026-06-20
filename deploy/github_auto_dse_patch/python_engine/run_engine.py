@@ -9,7 +9,7 @@ from pathlib import Path
 from src.api_client import HostingerApiClient, send_telegram_summary
 from src.config import ENGINE_ROOT, EngineConfig
 from src.data_loader import load_price_csv, merge_price_data
-from src.dse_fetcher import archive_start_date, fetch_dse_archive_prices, fetch_latest_dse_prices
+from src.dse_fetcher import fetch_latest_dse_prices
 from src.evaluator import evaluate_signals
 from src.indicators import add_indicators
 from src.paper_trader import TradingRules, simulate_paper_trades
@@ -73,28 +73,6 @@ def load_prices(config: EngineConfig):
         return csv_prices
     if config.data_source not in {"auto", "dse"}:
         raise ValueError("DATA_SOURCE must be one of: auto, dse, csv")
-
-    try:
-        latest_prices = fetch_latest_dse_prices(
-            config.dse_latest_url,
-            config.dse_market_status_url,
-            config.dse_symbols,
-        )
-        archive_prices = fetch_dse_archive_prices(
-            config.dse_archive_url,
-            archive_start_date(max(latest_prices["date"]), config.dse_archive_lookback_days),
-            max(latest_prices["date"]),
-            config.dse_symbols,
-        )
-        dse_prices = merge_price_data(archive_prices, latest_prices)
-        print(f"Fetched {len(archive_prices)} DSE archive rows and {len(latest_prices)} latest rows")
-        if config.merge_dse_with_csv:
-            return merge_price_data(csv_prices, dse_prices)
-        return dse_prices
-    except Exception as exc:
-        if config.data_source == "dse":
-            raise
-        print(f"DSE archive fetch failed, trying latest page only: {exc}")
 
     try:
         latest_prices = fetch_latest_dse_prices(

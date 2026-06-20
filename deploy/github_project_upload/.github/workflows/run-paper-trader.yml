@@ -1,0 +1,39 @@
+name: Run DSE Paper Trader
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 10:30 UTC = 16:30 Bangladesh time. Adjust if market hours change.
+    - cron: "30 10 * * 0-4"
+
+jobs:
+  paper-trader:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: python_engine/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r python_engine/requirements.txt
+
+      - name: Run tests
+        run: pytest python_engine/tests
+
+      - name: Run paper trading engine
+        env:
+          CSV_PATH: python_engine/sample_data/dse_demo_prices.csv
+          HOSTINGER_API_BASE_URL: ${{ secrets.HOSTINGER_API_BASE_URL }}
+          HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
+          HOSTINGER_HMAC_SECRET: ${{ secrets.HOSTINGER_HMAC_SECRET }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python python_engine/run_engine.py

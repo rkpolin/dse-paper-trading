@@ -65,7 +65,13 @@ Default GitHub Actions runs use:
 DATA_SOURCE=auto
 ```
 
-That means the engine fetches the public DSE latest share price page first and merges it with CSV history for indicator context. If DSE is temporarily unavailable, it falls back to `python_engine/sample_data/dse_demo_prices.csv`.
+That means the engine fetches DSE day-end archive data for recent history, then fetches the public DSE latest share price page and merges both with CSV fallback data for indicator context. If DSE is temporarily unavailable, it falls back to `python_engine/sample_data/dse_demo_prices.csv`.
+
+The archive lookback defaults to:
+
+```text
+DSE_ARCHIVE_LOOKBACK_DAYS=120
+```
 
 Use `DSE_SYMBOLS=GP,BRACBANK,SQURPHARMA` if you want to limit the run to a watchlist. Leave it blank to fetch all symbols shown on DSE's latest share price page.
 

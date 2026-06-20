@@ -67,4 +67,4 @@ The workflow runs Sunday through Thursday using UTC cron times that map to Bangl
 - `04:15`, `05:15`, `06:15`, `07:15` UTC = `10:15`, `11:15`, `12:15`, `13:15` Bangladesh time
 - `08:05` UTC = `14:05` Bangladesh time for a post-close snapshot
 
-The engine uses `DATA_SOURCE=auto`, which fetches DSE's public latest share price page first and falls back to the CSV file if DSE is unavailable.
+The engine uses `DATA_SOURCE=auto`, which fetches DSE day-end archive history plus the public latest share price page, then falls back to the CSV file if DSE is unavailable.

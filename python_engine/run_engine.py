@@ -70,6 +70,7 @@ def main() -> int:
     print_api_payload_counts(payload)
 
     if config.api_enabled:
+        print(f"Hostinger API timeout seconds: {config.api_timeout_seconds}")
         result = HostingerApiClient(
             config.api_base_url,
             config.api_token,

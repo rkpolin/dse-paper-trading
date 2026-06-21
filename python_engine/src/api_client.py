@@ -50,7 +50,7 @@ def browser_headers(base_url: str) -> dict[str, str]:
 
 
 class HostingerApiClient:
-    def __init__(self, base_url: str, api_token: str, hmac_secret: str, timeout: int = 30) -> None:
+    def __init__(self, base_url: str, api_token: str, hmac_secret: str, timeout: int = 180) -> None:
         self.base_url = base_url.rstrip("/")
         self.api_token = api_token
         self.hmac_secret = hmac_secret

@@ -9,6 +9,12 @@
 5. Select the new database.
 6. Import `database/schema.sql`.
 
+For an existing installation that already imported `schema.sql`, import this migration too:
+
+```text
+database/migrations/2026_06_21_intraday_time_patterns.sql
+```
+
 ## 2. Upload PHP Files
 
 Suggested public paths:
@@ -16,6 +22,21 @@ Suggested public paths:
 ```text
 public_html/api/        contents of hostinger_api/
 public_html/dashboard/  contents of dashboard/
+```
+
+For the intraday feature, make sure these new API files are uploaded:
+
+```text
+hostinger_api/save_intraday_snapshots.php
+hostinger_api/save_intraday_extremes.php
+hostinger_api/save_intraday_stats.php
+hostinger_api/endpoints/intraday.php
+```
+
+And upload the new dashboard page:
+
+```text
+dashboard/intraday.php
 ```
 
 After upload, create:
@@ -60,6 +81,14 @@ TELEGRAM_CHAT_ID=optional
 4. Open the completed run and confirm tests passed.
 5. Open `https://yourdomain.com/dashboard/login.php`.
 
+For intraday collection:
+
+1. Go to **Actions** in GitHub.
+2. Select **Intraday DSE Snapshots**.
+3. Click **Run workflow**.
+4. If the market is closed or outside a target bucket, the job exits safely without posting data.
+5. Use `force_run=true` only for manual testing.
+
 ## 6. Scheduled Runs
 
 The workflow runs Sunday through Thursday using UTC cron times that map to Bangladesh time:
@@ -68,3 +97,7 @@ The workflow runs Sunday through Thursday using UTC cron times that map to Bangl
 - `08:05` UTC = `14:05` Bangladesh time for a post-close snapshot
 
 The GitHub workflow uses `DATA_SOURCE=dse`, which fetches DSE day-end archive history plus the public latest share price page. If DSE cannot be reached, the run fails instead of posting stale demo data.
+
+The intraday workflow runs Sunday through Thursday at the configured 15-minute target buckets from `10:05` to `14:05` Bangladesh time. Add market holidays to `DSE_HOLIDAYS` in the workflow if you want those dates skipped.
+
+Intraday time-window stats need at least 20 completed trading days of snapshots. Before that, the dashboard shows `NOT_ENOUGH_DATA`.

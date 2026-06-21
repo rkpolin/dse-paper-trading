@@ -208,6 +208,22 @@ th {
     color: #4b5563;
 }
 
+.badge.NOT_ENOUGH_DATA,
+.badge.LOW {
+    background: var(--warning-soft);
+    color: var(--warning);
+}
+
+.badge.MEDIUM {
+    background: var(--accent-soft);
+    color: var(--accent);
+}
+
+.badge.HIGH {
+    background: var(--good-soft);
+    color: var(--good);
+}
+
 .filters {
     display: flex;
     flex-wrap: wrap;
@@ -226,6 +242,15 @@ th {
     border-color: var(--accent);
     color: var(--accent);
     background: var(--accent-soft);
+}
+
+.filter-form {
+    align-items: end;
+}
+
+.filter-form label {
+    display: grid;
+    gap: 5px;
 }
 
 .login-page {
@@ -257,6 +282,7 @@ label {
 }
 
 input,
+select,
 button {
     border: 1px solid var(--line);
     border-radius: 6px;
@@ -271,6 +297,19 @@ button {
     cursor: pointer;
     font-weight: 700;
     width: 100%;
+}
+
+.compact-button {
+    width: auto;
+}
+
+.notice {
+    background: var(--warning-soft);
+    border: 1px solid #f5d78b;
+    border-radius: 8px;
+    color: #5f3b00;
+    margin-top: 14px;
+    padding: 10px 12px;
 }
 
 .error {

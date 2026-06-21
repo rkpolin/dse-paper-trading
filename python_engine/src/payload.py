@@ -16,6 +16,9 @@ SYMBOL_PAYLOAD_KEYS = (
     "paper_trades",
     "positions",
     "accuracy_evaluations",
+    "intraday_snapshots",
+    "daily_intraday_extremes",
+    "intraday_time_window_stats",
 )
 
 

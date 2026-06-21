@@ -59,10 +59,13 @@ class HostingerApiClient:
         self.session.headers.update(browser_headers(self.base_url))
 
     def post_run(self, payload: dict[str, Any]) -> dict[str, Any]:
+        return self.post_endpoint("index.php", payload)
+
+    def post_endpoint(self, endpoint: str, payload: dict[str, Any]) -> dict[str, Any]:
         timestamp = str(int(time.time()))
         raw_body = encode_payload(payload)
         signature = build_signature(timestamp, raw_body, self.hmac_secret)
-        url = f"{self.base_url}/index.php"
+        url = f"{self.base_url}/{endpoint.lstrip('/')}"
         response = self.session.post(
             url,
             data=raw_body,

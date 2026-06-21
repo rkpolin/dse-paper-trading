@@ -1,0 +1,75 @@
+-- Intraday time pattern analyzer migration.
+-- Import this in phpMyAdmin for existing installations.
+
+CREATE TABLE IF NOT EXISTS intraday_snapshots (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    run_id VARCHAR(80) NOT NULL,
+    stock_id INT UNSIGNED NOT NULL,
+    trade_date DATE NOT NULL,
+    snapshot_time TIME NOT NULL,
+    bucket_time TIME NOT NULL,
+    snapshot_at DATETIME NOT NULL,
+    last_price DECIMAL(14,4) NOT NULL,
+    day_high DECIMAL(14,4) NOT NULL,
+    day_low DECIMAL(14,4) NOT NULL,
+    volume BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    source VARCHAR(80) NOT NULL DEFAULT 'python_engine',
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_intraday_snapshot_stock_bucket (stock_id, trade_date, bucket_time),
+    KEY idx_intraday_snapshots_run (run_id),
+    KEY idx_intraday_snapshots_date (trade_date),
+    KEY idx_intraday_snapshots_stock_date (stock_id, trade_date),
+    CONSTRAINT fk_intraday_snapshots_run FOREIGN KEY (run_id) REFERENCES system_runs(run_id),
+    CONSTRAINT fk_intraday_snapshots_stock FOREIGN KEY (stock_id) REFERENCES stocks(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS daily_intraday_extremes (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    run_id VARCHAR(80) NOT NULL,
+    stock_id INT UNSIGNED NOT NULL,
+    trade_date DATE NOT NULL,
+    day_high DECIMAL(14,4) NOT NULL,
+    day_high_time TIME NOT NULL,
+    day_low DECIMAL(14,4) NOT NULL,
+    day_low_time TIME NOT NULL,
+    intraday_range_pct DECIMAL(12,6) NOT NULL,
+    open_snapshot_price DECIMAL(14,4) NOT NULL,
+    close_snapshot_price DECIMAL(14,4) NOT NULL,
+    snapshot_count INT UNSIGNED NOT NULL,
+    is_complete TINYINT(1) NOT NULL DEFAULT 0,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_daily_intraday_extreme_stock_date (stock_id, trade_date),
+    KEY idx_daily_intraday_extremes_run (run_id),
+    KEY idx_daily_intraday_extremes_date (trade_date),
+    CONSTRAINT fk_daily_intraday_extremes_run FOREIGN KEY (run_id) REFERENCES system_runs(run_id),
+    CONSTRAINT fk_daily_intraday_extremes_stock FOREIGN KEY (stock_id) REFERENCES stocks(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS intraday_time_window_stats (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    run_id VARCHAR(80) NOT NULL,
+    stock_id INT UNSIGNED NOT NULL,
+    lookback_days INT UNSIGNED NOT NULL,
+    bucket_time TIME NOT NULL,
+    sample_days INT UNSIGNED NOT NULL,
+    low_count INT UNSIGNED NOT NULL DEFAULT 0,
+    high_count INT UNSIGNED NOT NULL DEFAULT 0,
+    low_probability DECIMAL(12,6) NOT NULL DEFAULT 0,
+    high_probability DECIMAL(12,6) NOT NULL DEFAULT 0,
+    avg_return_to_close_pct DECIMAL(12,6) NULL,
+    avg_return_next_bucket_pct DECIMAL(12,6) NULL,
+    buy_window_score DECIMAL(12,6) NOT NULL DEFAULT 0,
+    sell_window_score DECIMAL(12,6) NOT NULL DEFAULT 0,
+    confidence_level VARCHAR(20) NOT NULL,
+    computed_through_date DATE NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_intraday_stats_stock_lookback_bucket_date (stock_id, lookback_days, bucket_time, computed_through_date),
+    KEY idx_intraday_stats_run (run_id),
+    KEY idx_intraday_stats_stock (stock_id),
+    KEY idx_intraday_stats_computed_date (computed_through_date),
+    CONSTRAINT fk_intraday_stats_run FOREIGN KEY (run_id) REFERENCES system_runs(run_id),
+    CONSTRAINT fk_intraday_stats_stock FOREIGN KEY (stock_id) REFERENCES stocks(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

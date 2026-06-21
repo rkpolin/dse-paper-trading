@@ -14,6 +14,7 @@ Follow these steps in order.
 8. Click **Import**.
 9. Upload `database/schema.sql`.
 10. Click **Go**.
+11. If this is an existing dashboard and `schema.sql` was already imported before, also import `database/migrations/2026_06_21_intraday_time_patterns.sql`.
 
 ## Part B: Upload the PHP API
 
@@ -27,6 +28,15 @@ Follow these steps in order.
 8. Create a long random API token.
 9. Create a different long random HMAC secret.
 10. Save the file.
+
+For the intraday feature, confirm these files exist in `public_html/api/`:
+
+```text
+save_intraday_snapshots.php
+save_intraday_extremes.php
+save_intraday_stats.php
+endpoints/intraday.php
+```
 
 Example DSN:
 
@@ -53,6 +63,12 @@ Dashboard URL:
 
 ```text
 https://yourdomain.com/dashboard/login.php
+```
+
+The dashboard should also have:
+
+```text
+https://yourdomain.com/dashboard/intraday.php
 ```
 
 ## Part D: GitHub Repository
@@ -87,6 +103,15 @@ TELEGRAM_CHAT_ID
 7. Log in.
 8. Check Overview, Signals, Trades, Accuracy, and Portfolio.
 
+For intraday:
+
+1. Open **Actions**.
+2. Click **Intraday DSE Snapshots**.
+3. Click **Run workflow**.
+4. If the market is open and near a target time bucket, it saves intraday snapshots.
+5. For manual testing only, you may set `force_run` to `true`.
+6. Open the dashboard and click **Intraday**.
+
 ## Automatic DSE Data
 
 The GitHub workflow is configured with:
@@ -96,6 +121,22 @@ DATA_SOURCE=dse
 ```
 
 It fetches DSE day-end archive history and the public latest share price table during each run. If DSE cannot be reached, the run fails so old demo data is not posted again.
+
+## Intraday Time Patterns
+
+The intraday workflow collects snapshots around these Bangladesh-time buckets:
+
+```text
+10:05, 10:20, 10:35, 10:50,
+11:05, 11:20, 11:35, 11:50,
+12:05, 12:20, 12:35, 12:50,
+13:05, 13:20, 13:35, 13:50,
+14:05
+```
+
+At least 20 completed trading days are needed before the system can show useful historical buy/sell time-window confidence. Before that, `NOT_ENOUGH_DATA` is normal.
+
+The feature is paper trading only. It is not financial advice and does not guarantee profit.
 
 ## Part F: If Something Breaks
 

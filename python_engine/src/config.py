@@ -65,6 +65,11 @@ class EngineConfig:
     hmac_secret: str
     api_timeout_seconds: int
     api_payload_trading_days: int
+    intraday_history_csv_path: Path
+    intraday_bucket_tolerance_minutes: int
+    intraday_force_run: bool
+    intraday_stat_lookbacks: tuple[int, ...]
+    dse_holidays: tuple[str, ...]
     telegram_bot_token: str
     telegram_chat_id: str
 
@@ -81,6 +86,16 @@ class EngineConfig:
             symbol.strip().upper()
             for symbol in _env_str("DSE_SYMBOLS").split(",")
             if symbol.strip()
+        )
+        intraday_lookbacks = tuple(
+            int(value.strip())
+            for value in _env_str("INTRADAY_STAT_LOOKBACKS", "20,30,60").split(",")
+            if value.strip()
+        )
+        holidays = tuple(
+            value.strip()
+            for value in _env_str("DSE_HOLIDAYS").split(",")
+            if value.strip()
         )
         return cls(
             csv_path=_resolve_path(_env_str("CSV_PATH", csv_default)),
@@ -103,6 +118,13 @@ class EngineConfig:
             hmac_secret=_env_str("HOSTINGER_HMAC_SECRET"),
             api_timeout_seconds=_env_int("HOSTINGER_API_TIMEOUT_SECONDS", 180),
             api_payload_trading_days=_env_int("API_PAYLOAD_TRADING_DAYS", 1),
+            intraday_history_csv_path=_resolve_path(
+                _env_str("INTRADAY_HISTORY_CSV_PATH", "python_engine/sample_data/dse_intraday_demo.csv")
+            ),
+            intraday_bucket_tolerance_minutes=_env_int("INTRADAY_BUCKET_TOLERANCE_MINUTES", 8),
+            intraday_force_run=_env_str("INTRADAY_FORCE_RUN", "false").lower() in {"1", "true", "yes", "on"},
+            intraday_stat_lookbacks=intraday_lookbacks or (20, 30, 60),
+            dse_holidays=holidays,
             telegram_bot_token=_env_str("TELEGRAM_BOT_TOKEN"),
             telegram_chat_id=_env_str("TELEGRAM_CHAT_ID"),
         )

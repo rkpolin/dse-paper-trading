@@ -22,6 +22,7 @@ $pageTitle = $pageTitle ?? $appName;
         <a class="<?= nav_active('trades.php') ?>" href="trades.php">Trades</a>
         <a class="<?= nav_active('accuracy.php') ?>" href="accuracy.php">Accuracy</a>
         <a class="<?= nav_active('portfolio.php') ?>" href="portfolio.php">Portfolio</a>
+        <a class="<?= nav_active('intraday.php') ?>" href="intraday.php">Intraday</a>
         <a class="<?= nav_active('settings.php') ?>" href="settings.php">Settings</a>
     </nav>
     <a class="logout" href="logout.php">Logout</a>

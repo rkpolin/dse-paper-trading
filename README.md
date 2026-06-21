@@ -11,6 +11,7 @@ Secure MVP for DSE-style paper trading research. It does not connect to a broker
 - Simulates paper trades with a 100,000 BDT starting balance.
 - Tracks realized/unrealized P/L, portfolio value, open positions, win rate, and signal accuracy.
 - Scores signals after 5 trading days.
+- Collects intraday snapshots during DSE market hours and estimates historical high/low time windows for paper-trading research.
 - Sends signed JSON data from GitHub Actions to a PHP 8 API on Hostinger.
 - Displays results in a PHP + MySQL dashboard with Chart.js.
 
@@ -21,6 +22,7 @@ python_engine/       Python 3.11 signal and paper-trading engine
 hostinger_api/       PHP 8 signed JSON ingest API
 dashboard/           PHP dashboard pages
 database/schema.sql  MySQL/MariaDB schema
+database/migrations/ Extra migrations for existing installations
 docs/                Beginner setup guide
 .github/workflows/   Scheduled/manual GitHub Actions runner
 ```
@@ -82,6 +84,31 @@ DSE_ARCHIVE_LOOKBACK_DAYS=120
 ```
 
 Use `DSE_SYMBOLS=GP,BRACBANK,SQURPHARMA` if you want to limit the run to a watchlist. Leave it blank to fetch all symbols shown on DSE's latest share price page.
+
+## Intraday Time Pattern Analyzer
+
+The intraday workflow is paper-trading research only. It does not connect to any broker and does not place real trades.
+
+It runs during Bangladesh market hours at these target buckets:
+
+```text
+10:05, 10:20, 10:35, 10:50,
+11:05, 11:20, 11:35, 11:50,
+12:05, 12:20, 12:35, 12:50,
+13:05, 13:20, 13:35, 13:50,
+14:05
+```
+
+Each run saves current intraday snapshots to Hostinger. The dashboard uses accumulated snapshots to show high/low so far. Historical time-window stats require at least 20 completed trading days of intraday snapshots. Today is excluded from recommendation stats to avoid look-ahead bias.
+
+Optional intraday settings:
+
+```text
+INTRADAY_HISTORY_CSV_PATH=python_engine/sample_data/dse_intraday_demo.csv
+INTRADAY_BUCKET_TOLERANCE_MINUTES=8
+INTRADAY_STAT_LOOKBACKS=20,30,60
+DSE_HOLIDAYS=2026-02-21,2026-03-26
+```
 
 ## Required GitHub Secrets
 

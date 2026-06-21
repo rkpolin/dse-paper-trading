@@ -102,6 +102,43 @@ function require_date_value(array $input, string $key): string
     return $date;
 }
 
+function require_time_value(array $input, string $key): string
+{
+    $time = require_string($input, $key, 8);
+    if (preg_match('/^([01]\d|2[0-3]):([0-5]\d)$/', $time)) {
+        return $time . ':00';
+    }
+    if (!preg_match('/^([01]\d|2[0-3]):([0-5]\d):([0-5]\d)$/', $time)) {
+        api_error(400, 'TIME_INVALID', $key . ' must be HH:MM or HH:MM:SS.');
+    }
+    return $time;
+}
+
+function require_datetime_value(array $input, string $key): string
+{
+    $value = require_string($input, $key, 25);
+    $normalized = str_replace('T', ' ', rtrim($value, 'Z'));
+    if (preg_match('/^\d{4}-\d{2}-\d{2} ([01]\d|2[0-3]):([0-5]\d)$/', $normalized)) {
+        return $normalized . ':00';
+    }
+    if (!preg_match('/^\d{4}-\d{2}-\d{2} ([01]\d|2[0-3]):([0-5]\d):([0-5]\d)$/', $normalized)) {
+        api_error(400, 'DATETIME_INVALID', $key . ' must be YYYY-MM-DD HH:MM:SS.');
+    }
+    return $normalized;
+}
+
+function require_int_value(array $input, string $key, int $min = 0): int
+{
+    if (!isset($input[$key]) || !is_numeric($input[$key])) {
+        api_error(400, 'PAYLOAD_INVALID', $key . ' must be numeric.');
+    }
+    $value = (int)$input[$key];
+    if ($value < $min) {
+        api_error(400, 'PAYLOAD_INVALID', $key . ' is outside the allowed range.');
+    }
+    return $value;
+}
+
 function require_float_value(array $input, string $key, float $min = -INF): float
 {
     if (!isset($input[$key]) || !is_numeric($input[$key])) {

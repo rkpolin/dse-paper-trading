@@ -5,6 +5,9 @@ import sys
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
+
+import pandas as pd
 
 from src.api_client import HostingerApiClient, send_telegram_summary
 from src.config import ENGINE_ROOT, EngineConfig
@@ -41,19 +44,37 @@ def main() -> int:
     )
     trading = simulate_paper_trades(prices, signals, run_id, rules)
     evaluations = evaluate_signals(prices, signals, config.evaluation_days)
-    payload = build_payload(run_id, prices, indicators, signals, trading, evaluations, started_at)
+    api_prices, api_indicators, api_signals, api_trading, api_evaluations = limit_api_payload_data(
+        prices,
+        indicators,
+        signals,
+        trading,
+        evaluations,
+        config.api_payload_trading_days,
+    )
+    payload = build_payload(
+        run_id,
+        api_prices,
+        api_indicators,
+        api_signals,
+        api_trading,
+        api_evaluations,
+        started_at,
+    )
     payload, symbol_stats = sanitize_payload_symbols(payload)
     if symbol_stats["changed"] or symbol_stats["dropped"]:
         print(
             "Cleaned payload symbols: "
             f"{symbol_stats['changed']} changed, {symbol_stats['dropped']} dropped"
         )
+    print_api_payload_counts(payload)
 
     if config.api_enabled:
         result = HostingerApiClient(
             config.api_base_url,
             config.api_token,
             config.hmac_secret,
+            timeout=config.api_timeout_seconds,
         ).post_run(payload)
         print(json.dumps({"run_id": run_id, "api_result": result}, indent=2))
     else:
@@ -77,6 +98,74 @@ def main() -> int:
         )
 
     return 0
+
+
+def limit_api_payload_data(
+    prices: pd.DataFrame,
+    indicators: pd.DataFrame,
+    signals: pd.DataFrame,
+    trading: dict[str, Any],
+    evaluations: pd.DataFrame,
+    max_trading_days: int,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, dict[str, Any], pd.DataFrame]:
+    if max_trading_days <= 0 or prices.empty or "date" not in prices.columns:
+        return prices, indicators, signals, trading, evaluations
+
+    trading_dates = sorted(prices["date"].dropna().unique())
+    keep_dates = trading_dates[-max_trading_days:]
+    keep_date_strings = {str(date_value) for date_value in keep_dates}
+    if not keep_dates:
+        return prices, indicators, signals, trading, evaluations
+
+    print(
+        "API payload limited to latest "
+        f"{len(keep_dates)} trading days: {keep_dates[0]} to {keep_dates[-1]}"
+    )
+    return (
+        _filter_frame_by_dates(prices, "date", keep_dates),
+        _filter_frame_by_dates(indicators, "date", keep_dates),
+        _filter_frame_by_dates(signals, "date", keep_dates),
+        _filter_trading_payload(trading, keep_date_strings),
+        _filter_frame_by_dates(evaluations, "signal_date", keep_dates),
+    )
+
+
+def _filter_frame_by_dates(df: pd.DataFrame, column: str, keep_dates: list[Any]) -> pd.DataFrame:
+    if df.empty or column not in df.columns:
+        return df.copy()
+    return df[df[column].isin(keep_dates)].copy()
+
+
+def _filter_trading_payload(trading: dict[str, Any], keep_date_strings: set[str]) -> dict[str, Any]:
+    filtered = dict(trading)
+    filtered["trades"] = [
+        trade
+        for trade in trading.get("trades", [])
+        if str(trade.get("trade_date", "")) in keep_date_strings
+    ]
+    filtered["positions"] = list(trading.get("positions", []))
+    filtered["snapshots"] = [
+        snapshot
+        for snapshot in trading.get("snapshots", [])
+        if str(snapshot.get("snapshot_date", "")) in keep_date_strings
+    ]
+    filtered["summary"] = dict(trading.get("summary", {}))
+    return filtered
+
+
+def print_api_payload_counts(payload: dict[str, Any]) -> None:
+    count_keys = [
+        "stocks",
+        "daily_prices",
+        "indicators",
+        "signals",
+        "paper_trades",
+        "positions",
+        "portfolio_snapshots",
+        "accuracy_evaluations",
+    ]
+    counts = ", ".join(f"{key}={len(payload.get(key, []))}" for key in count_keys)
+    print(f"API payload rows: {counts}")
 
 
 def load_prices(config: EngineConfig):

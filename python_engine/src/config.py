@@ -63,6 +63,8 @@ class EngineConfig:
     api_base_url: str
     api_token: str
     hmac_secret: str
+    api_timeout_seconds: int
+    api_payload_trading_days: int
     telegram_bot_token: str
     telegram_chat_id: str
 
@@ -99,6 +101,8 @@ class EngineConfig:
             api_base_url=_env_str("HOSTINGER_API_BASE_URL"),
             api_token=_env_str("HOSTINGER_API_TOKEN"),
             hmac_secret=_env_str("HOSTINGER_HMAC_SECRET"),
+            api_timeout_seconds=_env_int("HOSTINGER_API_TIMEOUT_SECONDS", 180),
+            api_payload_trading_days=_env_int("API_PAYLOAD_TRADING_DAYS", 5),
             telegram_bot_token=_env_str("TELEGRAM_BOT_TOKEN"),
             telegram_chat_id=_env_str("TELEGRAM_CHAT_ID"),
         )

@@ -52,6 +52,8 @@ jobs:
           DSE_ARCHIVE_URL: https://www.dsebd.org/day_end_archive.php
           DSE_ARCHIVE_LOOKBACK_DAYS: "120"
           MERGE_DSE_WITH_CSV: "true"
+          API_PAYLOAD_TRADING_DAYS: "5"
+          HOSTINGER_API_TIMEOUT_SECONDS: "180"
           HOSTINGER_API_BASE_URL: ${{ secrets.HOSTINGER_API_BASE_URL }}
           HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
           HOSTINGER_HMAC_SECRET: ${{ secrets.HOSTINGER_HMAC_SECRET }}

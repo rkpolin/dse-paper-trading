@@ -81,8 +81,13 @@ function optional_string(array $input, string $key, int $maxLength, ?string $def
 
 function require_symbol(array $input): string
 {
-    $symbol = require_string($input, 'symbol', 30);
-    if (!preg_match('/^[A-Z0-9._-]+$/', $symbol)) {
+    if (!isset($input['symbol']) || !is_scalar($input['symbol'])) {
+        api_error(400, 'PAYLOAD_INVALID', 'symbol is required.');
+    }
+
+    $rawSymbol = trim((string)$input['symbol']);
+    $symbol = strtoupper((string)preg_replace('/[^A-Za-z0-9]/', '', $rawSymbol));
+    if ($symbol === '' || strlen($symbol) > 30) {
         api_error(400, 'SYMBOL_INVALID', 'Symbol contains unsupported characters.');
     }
     return $symbol;

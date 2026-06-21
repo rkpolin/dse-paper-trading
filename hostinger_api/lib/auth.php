@@ -12,7 +12,7 @@ function verify_signed_request(array $config, string $rawBody): void
         api_error(415, 'UNSUPPORTED_MEDIA_TYPE', 'Only application/json is accepted.');
     }
 
-    $token = get_header_value('X-API-Token');
+    $token = get_api_token_header();
     $timestamp = get_header_value('X-Timestamp');
     $signature = get_header_value('X-Signature');
 
@@ -44,6 +44,15 @@ function verify_signed_request(array $config, string $rawBody): void
     if (!hash_equals($expectedSignature, $signature)) {
         api_error(401, 'SIGNATURE_INVALID', 'Authentication failed.');
     }
+}
+
+function get_api_token_header(): string
+{
+    $token = get_header_value('X-API-Key');
+    if ($token !== '') {
+        return $token;
+    }
+    return get_header_value('X-API-Token');
 }
 
 function get_header_value(string $name): string

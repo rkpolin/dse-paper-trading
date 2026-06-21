@@ -68,6 +68,7 @@ class HostingerApiClient:
             data=raw_body,
             headers={
                 "Content-Type": "application/json",
+                "X-API-Key": self.api_token,
                 "X-API-Token": self.api_token,
                 "X-Timestamp": timestamp,
                 "X-Signature": signature,

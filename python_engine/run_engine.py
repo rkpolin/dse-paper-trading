@@ -13,7 +13,7 @@ from src.dse_fetcher import archive_start_date, fetch_dse_archive_prices, fetch_
 from src.evaluator import evaluate_signals
 from src.indicators import add_indicators
 from src.paper_trader import TradingRules, simulate_paper_trades
-from src.payload import build_payload
+from src.payload import build_payload, sanitize_payload_symbols
 from src.signals import generate_signals
 
 
@@ -42,6 +42,12 @@ def main() -> int:
     trading = simulate_paper_trades(prices, signals, run_id, rules)
     evaluations = evaluate_signals(prices, signals, config.evaluation_days)
     payload = build_payload(run_id, prices, indicators, signals, trading, evaluations, started_at)
+    payload, symbol_stats = sanitize_payload_symbols(payload)
+    if symbol_stats["changed"] or symbol_stats["dropped"]:
+        print(
+            "Cleaned payload symbols: "
+            f"{symbol_stats['changed']} changed, {symbol_stats['dropped']} dropped"
+        )
 
     if config.api_enabled:
         result = HostingerApiClient(

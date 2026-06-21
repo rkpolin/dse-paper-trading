@@ -1,9 +1,22 @@
 from __future__ import annotations
 
+import copy
+import re
 from datetime import datetime, timezone
 from typing import Any
 
 import pandas as pd
+
+SYMBOL_CLEAN_RE = re.compile(r"[^A-Za-z0-9]+")
+SYMBOL_PAYLOAD_KEYS = (
+    "stocks",
+    "daily_prices",
+    "indicators",
+    "signals",
+    "paper_trades",
+    "positions",
+    "accuracy_evaluations",
+)
 
 
 def build_payload(
@@ -80,6 +93,42 @@ def _records(df: pd.DataFrame, columns: list[str] | None = None) -> list[dict[st
                 clean[key] = value
         output.append(clean)
     return output
+
+
+def clean_symbol(symbol: Any) -> str:
+    return SYMBOL_CLEAN_RE.sub("", str(symbol).strip()).upper()
+
+
+def sanitize_payload_symbols(payload: dict[str, Any]) -> tuple[dict[str, Any], dict[str, int]]:
+    clean_payload = copy.deepcopy(payload)
+    stats = {"changed": 0, "dropped": 0}
+
+    for key in SYMBOL_PAYLOAD_KEYS:
+        rows = clean_payload.get(key)
+        if not isinstance(rows, list):
+            continue
+
+        clean_rows = []
+        for row in rows:
+            if not isinstance(row, dict) or "symbol" not in row:
+                clean_rows.append(row)
+                continue
+
+            original = str(row["symbol"])
+            cleaned = clean_symbol(original)
+            if not cleaned:
+                stats["dropped"] += 1
+                continue
+            if cleaned != original:
+                stats["changed"] += 1
+                row["symbol"] = cleaned
+                if key == "stocks" and str(row.get("name", "")) == original:
+                    row["name"] = cleaned
+            clean_rows.append(row)
+
+        clean_payload[key] = clean_rows
+
+    return clean_payload, stats
 
 
 def _stocks(prices: pd.DataFrame) -> list[dict[str, str]]:

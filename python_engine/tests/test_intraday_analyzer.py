@@ -76,12 +76,7 @@ def _snapshots(start: date, days: int, low_bucket: str = "10:20") -> pd.DataFram
     records = []
     for offset in range(days):
         trade_date = start + timedelta(days=offset)
-        low_by_bucket = {
-            "10:05": 97,
-            "10:20": 98,
-            "10:35": 98,
-            "14:05": 98,
-        }
+        low_by_bucket = {"10:05": 99, "10:20": 98, "10:35": 98, "14:05": 98}
         if low_bucket == "10:05":
             low_by_bucket = {"10:05": 97, "10:20": 97, "10:35": 97, "14:05": 97}
         for bucket, price, high, low in [

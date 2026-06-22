@@ -75,17 +75,13 @@ def is_market_day(local_dt: datetime, holidays: tuple[str, ...] = ()) -> bool:
 
 
 def nearest_target_bucket(local_dt: datetime, tolerance_minutes: int = 8) -> str | None:
-    best_bucket = None
-    best_delta = None
+    selected_bucket = None
     for bucket in TARGET_BUCKETS:
         bucket_dt = datetime.combine(local_dt.date(), bucket_as_time(bucket), tzinfo=BD_TZ)
-        delta_minutes = abs((local_dt - bucket_dt).total_seconds()) / 60
-        if best_delta is None or delta_minutes < best_delta:
-            best_bucket = bucket
-            best_delta = delta_minutes
-    if best_delta is not None and best_delta <= tolerance_minutes:
-        return best_bucket
-    return None
+        minutes_after_bucket = (local_dt - bucket_dt).total_seconds() / 60
+        if 0 <= minutes_after_bucket <= tolerance_minutes:
+            selected_bucket = bucket
+    return selected_bucket
 
 
 def should_collect_now(

@@ -385,7 +385,42 @@ button {
     min-width: 340px;
 }
 
+.summary-cell {
+    max-width: 320px;
+    min-width: 240px;
+    white-space: normal;
+}
+
 .detail-cell div + div {
+    margin-top: 5px;
+}
+
+.signal-detail-row td {
+    background: #fbfcfd;
+    padding: 0;
+}
+
+.signal-detail-grid {
+    display: grid;
+    gap: 14px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    padding: 14px;
+}
+
+.signal-detail-block {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 12px;
+}
+
+.signal-detail-block h3 {
+    font-size: 14px;
+    margin: 0 0 10px;
+}
+
+.signal-detail-block div + div,
+.signal-detail-block ul + div {
     margin-top: 5px;
 }
 
@@ -449,5 +484,9 @@ button {
 
     .panel {
         overflow-x: auto;
+    }
+
+    .signal-detail-grid {
+        grid-template-columns: 1fr;
     }
 }

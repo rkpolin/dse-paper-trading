@@ -262,8 +262,9 @@ require __DIR__ . '/includes/header.php';
                                 'quantity' => 1,
                                 'reason' => 'QUICK_BUY',
                             ]);
+                            $quickBuyUrl = 'manual_trade.php?' . $quickBuyQuery . '#buy-form';
                             ?>
-                            <a class="button compact-link" href="manual_trade.php?<?= h($quickBuyQuery) ?>#buy-form">Quick Buy</a>
+                            <a class="button compact-link" href="<?= h($quickBuyUrl) ?>">Quick Buy</a>
                         <?php else: ?>
                             <span class="muted">-</span>
                         <?php endif; ?>

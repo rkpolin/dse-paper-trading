@@ -330,6 +330,12 @@ button {
     width: auto;
 }
 
+.compact-link {
+    display: inline-flex;
+    min-height: 32px;
+    align-items: center;
+}
+
 .inline-form {
     display: inline;
 }

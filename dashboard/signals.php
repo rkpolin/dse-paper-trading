@@ -13,7 +13,7 @@ if (!in_array($type, $allowed, true)) {
     $type = 'ALL';
 }
 
-$focusAllowed = ['ALL', 'BUY_READY'];
+$focusAllowed = ['ALL', 'BUY_READY', 'TOP5'];
 $focus = strtoupper((string)($_GET['focus'] ?? 'ALL'));
 if (!in_array($focus, $focusAllowed, true)) {
     $focus = 'ALL';
@@ -144,25 +144,21 @@ usort(
 );
 
 $rankMap = [];
-$focusCandidates = [];
 foreach ($rankableSignals as $index => $rankedSignal) {
     $rankKey = (string)$rankedSignal['detail_id'];
     $rankMap[$rankKey] = $index + 1;
-    if (($rankedSignal['buy_rank']['eligible_for_focus'] ?? false) === true) {
-        $focusCandidates[] = $rankedSignal;
-    }
 }
 
 $displaySignals = [];
 foreach ($preparedSignals as $signalView) {
     $signalView['buy_rank_position'] = $rankMap[(string)$signalView['detail_id']] ?? null;
-    if ($focus === 'BUY_READY' && !($signalView['buy_rank']['eligible_for_focus'] ?? false)) {
+    if (in_array($focus, ['BUY_READY', 'TOP5'], true) && !($signalView['buy_rank']['eligible_for_focus'] ?? false)) {
         continue;
     }
     $displaySignals[] = $signalView;
 }
 
-if ($focus === 'BUY_READY' || $type === 'BUY') {
+if (in_array($focus, ['BUY_READY', 'TOP5'], true) || $type === 'BUY') {
     usort(
         $displaySignals,
         static function (array $left, array $right): int {
@@ -176,6 +172,12 @@ if ($focus === 'BUY_READY' || $type === 'BUY') {
     );
 }
 
+if ($focus === 'TOP5') {
+    $displaySignals = array_slice($displaySignals, 0, 5);
+}
+
+$showQuickBuy = $focus === 'TOP5';
+
 $pageTitle = 'Signals';
 require __DIR__ . '/includes/header.php';
 ?>
@@ -183,44 +185,11 @@ require __DIR__ . '/includes/header.php';
     <?php foreach ($allowed as $option): ?>
         <a class="<?= $type === $option ? 'active' : '' ?>" href="signals.php?type=<?= h($option) ?>&focus=<?= h($focus) ?>"><?= h($option) ?></a>
     <?php endforeach; ?>
-</div>
-<div class="filters">
     <a class="<?= $focus === 'ALL' ? 'active' : '' ?>" href="signals.php?type=<?= h($type) ?>&focus=ALL">All Rows</a>
-    <a class="<?= $focus === 'BUY_READY' ? 'active' : '' ?>" href="signals.php?type=<?= h($type) ?>&focus=BUY_READY">Buy Decision Rank</a>
+    <a class="<?= $focus === 'BUY_READY' ? 'active' : '' ?>" href="signals.php?type=<?= h($type) ?>&focus=BUY_READY">Buy Rank</a>
+    <a class="<?= $focus === 'TOP5' ? 'active' : '' ?>" href="signals.php?type=<?= h($type) ?>&focus=TOP5">Top 5 Buy</a>
 </div>
 <div class="notice">Paper trading only. Buy Rank is a decision aid based on Signal Score, entry action, pump risk, upside, and affordability. It is not financial advice or a guaranteed profit signal.</div>
-
-<?php if ($focusCandidates): ?>
-<section class="panel">
-    <h2>Top Buy Decision Candidates</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>Rank</th>
-                <th>Symbol</th>
-                <th>Current Price</th>
-                <th>Signal Score</th>
-                <th>Entry Action</th>
-                <th>Pump Risk</th>
-                <th>Buy Rank Score</th>
-            </tr>
-        </thead>
-        <tbody>
-        <?php foreach (array_slice($focusCandidates, 0, 5) as $candidate): ?>
-            <tr>
-                <td><span class="rank-pill">#<?= h((string)($rankMap[(string)$candidate['detail_id']] ?? '-')) ?></span></td>
-                <td><?= h((string)$candidate['row']['symbol']) ?></td>
-                <td><?= money((float)$candidate['row']['close_price']) ?></td>
-                <td><?= pct((float)$candidate['row']['confidence']) ?></td>
-                <td><?= h((string)$candidate['entry_zone']['action']) ?></td>
-                <td><?= h((string)$candidate['pump_risk']['level']) ?> (<?= number_format((int)$candidate['pump_risk']['score']) ?>/100)</td>
-                <td><?= number_format((float)$candidate['buy_rank']['score'], 2) ?> / 100</td>
-            </tr>
-        <?php endforeach; ?>
-        </tbody>
-    </table>
-</section>
-<?php endif; ?>
 
 <section class="panel">
     <table>
@@ -236,6 +205,9 @@ require __DIR__ . '/includes/header.php';
                 <th>Pump Risk</th>
                 <th>Buy Rank</th>
                 <th>Summary</th>
+                <?php if ($showQuickBuy): ?>
+                    <th>Quick Buy</th>
+                <?php endif; ?>
                 <th>Details</th>
             </tr>
         </thead>
@@ -280,6 +252,23 @@ require __DIR__ . '/includes/header.php';
                     <?php endif; ?>
                 </td>
                 <td class="summary-cell"><?= h((string)$signalView['summary_text']) ?></td>
+                <?php if ($showQuickBuy): ?>
+                    <td>
+                        <?php if (($buyRank['eligible_for_focus'] ?? false) === true): ?>
+                            <?php
+                            $quickBuyQuery = http_build_query([
+                                'symbol' => (string)$row['symbol'],
+                                'target_price' => number_format((float)$row['close_price'], 2, '.', ''),
+                                'quantity' => 1,
+                                'reason' => 'QUICK_BUY',
+                            ]);
+                            ?>
+                            <a class="button compact-link" href="manual_trade.php?<?= h($quickBuyQuery) ?>#buy-form">Quick Buy</a>
+                        <?php else: ?>
+                            <span class="muted">-</span>
+                        <?php endif; ?>
+                    </td>
+                <?php endif; ?>
                 <td>
                     <button
                         type="button"
@@ -292,7 +281,7 @@ require __DIR__ . '/includes/header.php';
                 </td>
             </tr>
             <tr id="<?= h((string)$signalView['detail_id']) ?>" class="signal-detail-row" hidden>
-                <td colspan="11">
+                <td colspan="<?= $showQuickBuy ? '12' : '11' ?>">
                     <div class="signal-detail-grid">
                         <div class="signal-detail-block">
                             <h3>Entry Zone</h3>
@@ -339,7 +328,7 @@ require __DIR__ . '/includes/header.php';
             </tr>
         <?php endforeach; ?>
         <?php if (!$displaySignals): ?>
-            <tr><td colspan="11" class="muted">No signals found for this filter.</td></tr>
+            <tr><td colspan="<?= $showQuickBuy ? '12' : '11' ?>" class="muted">No signals found for this filter.</td></tr>
         <?php endif; ?>
         </tbody>
     </table>

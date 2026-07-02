@@ -349,7 +349,7 @@ function process_pending_manual_orders(PDO $pdo, ?string $dailyRunId): array
             $executed++;
 
             $tradeRows = fetch_trade_rows_for_dashboard($pdo, $dailyRunId);
-        } catch (Throwable) {
+        } catch (Throwable $exception) {
             if ($pdo->inTransaction()) {
                 $pdo->rollBack();
             }
@@ -357,7 +357,7 @@ function process_pending_manual_orders(PDO $pdo, ?string $dailyRunId): array
                 $pdo,
                 (string)$order['order_id'],
                 (string)$lastCheckedDate,
-                'Order matched market data but could not be executed. Please upload the latest dashboard files or check database columns.'
+                manual_order_failure_note($exception)
             );
         }
     }
@@ -448,7 +448,7 @@ function mark_manual_order_executed(PDO $pdo, string $orderId, string $tradeId, 
          SET status = 'EXECUTED',
              executed_trade_id = :executed_trade_id,
              executed_date = :executed_date,
-             last_checked_date = :executed_date,
+             last_checked_date = :last_checked_date,
              note = 'Target price hit and paper trade was created.',
              updated_at = CURRENT_TIMESTAMP
          WHERE order_id = :order_id"
@@ -457,6 +457,7 @@ function mark_manual_order_executed(PDO $pdo, string $orderId, string $tradeId, 
         'order_id' => $orderId,
         'executed_trade_id' => $tradeId,
         'executed_date' => $executedDate,
+        'last_checked_date' => $executedDate,
     ]);
 }
 
@@ -546,6 +547,15 @@ function dashboard_sql_values(array $values, array $columns): array
         $filtered[$column] = $values[$column] ?? null;
     }
     return $filtered;
+}
+
+function manual_order_failure_note(Throwable $exception): string
+{
+    $message = trim(preg_replace('/\s+/', ' ', $exception->getMessage()));
+    if ($message === '') {
+        $message = $exception::class;
+    }
+    return substr('Order matched market data but could not be executed. ' . $message, 0, 255);
 }
 
 function aggregate_open_positions(array $openLots, array $latestPrices): array

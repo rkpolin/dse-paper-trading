@@ -197,7 +197,7 @@ if (isset($_GET['success']) && is_scalar($_GET['success'])) {
 
 $defaultBuyDate = (new DateTimeImmutable('now', new DateTimeZone('Asia/Dhaka')))->format('Y-m-d');
 $requestedBuySymbol = strtoupper((string)preg_replace('/[^A-Za-z0-9]/', '', (string)($_GET['symbol'] ?? '')));
-$selectedBuySymbol = (string)($stockRows[0]['symbol'] ?? '');
+$selectedBuySymbol = '';
 if ($requestedBuySymbol !== '' && isset($stockPriceMap[$requestedBuySymbol])) {
     $selectedBuySymbol = $requestedBuySymbol;
 }
@@ -247,6 +247,7 @@ require __DIR__ . '/includes/header.php';
             <div class="field">
                 <label for="buy-symbol">Symbol</label>
                 <select id="buy-symbol" name="symbol" required>
+                    <option value="" <?= $selectedBuySymbol === '' ? 'selected' : '' ?>>Select stock</option>
                     <?php foreach ($stockRows as $row): ?>
                         <option
                             value="<?= h((string)$row['symbol']) ?>"
@@ -438,8 +439,9 @@ require __DIR__ . '/includes/header.php';
 function updateBuyPriceDisplay() {
     const select = document.getElementById('buy-symbol');
     const option = select.options[select.selectedIndex];
-    document.getElementById('buy-current-price').textContent = option.dataset.price ? `${Number(option.dataset.price).toFixed(2)} BDT` : 'N/A';
-    document.getElementById('buy-current-date').textContent = option.dataset.date || 'N/A';
+    const hasData = option && option.dataset;
+    document.getElementById('buy-current-price').textContent = hasData && option.dataset.price ? `${Number(option.dataset.price).toFixed(2)} BDT` : 'N/A';
+    document.getElementById('buy-current-date').textContent = hasData && option.dataset.date ? option.dataset.date : 'N/A';
 }
 
 function updateSellPriceDisplay() {

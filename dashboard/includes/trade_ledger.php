@@ -29,13 +29,33 @@ if (!function_exists('dashboard_manual_upsert_run')) {
 if (!function_exists('dashboard_insert_manual_trade')) {
     function dashboard_insert_manual_trade(PDO $pdo, array $trade): void
     {
+        $optionalColumns = [];
+        foreach (['source', 'entry_trade_id', 'reason'] as $column) {
+            if (dashboard_table_column_exists($pdo, 'paper_trades', $column)) {
+                $optionalColumns[] = $column;
+            }
+        }
+
+        $columns = [
+            'trade_id',
+            'run_id',
+            'stock_id',
+            'trade_date',
+            'side',
+            'quantity',
+            'price',
+            'gross_value',
+            'transaction_cost',
+            'net_value',
+            'realized_pl',
+            ...$optionalColumns,
+        ];
+
         $stmt = $pdo->prepare(
-            'INSERT INTO paper_trades
-                (trade_id, run_id, stock_id, trade_date, side, quantity, price, gross_value, transaction_cost, net_value, realized_pl, source, entry_trade_id, reason)
-             VALUES
-                (:trade_id, :run_id, :stock_id, :trade_date, :side, :quantity, :price, :gross_value, :transaction_cost, :net_value, :realized_pl, :source, :entry_trade_id, :reason)'
+            'INSERT INTO paper_trades (' . implode(', ', $columns) . ')
+             VALUES (' . implode(', ', array_map(static fn(string $column): string => ':' . $column, $columns)) . ')'
         );
-        $stmt->execute($trade);
+        $stmt->execute(dashboard_sql_values($trade, $columns));
     }
 }
 
@@ -333,6 +353,12 @@ function process_pending_manual_orders(PDO $pdo, ?string $dailyRunId): array
             if ($pdo->inTransaction()) {
                 $pdo->rollBack();
             }
+            update_manual_order_progress(
+                $pdo,
+                (string)$order['order_id'],
+                (string)$lastCheckedDate,
+                'Order matched market data but could not be executed. Please upload the latest dashboard files or check database columns.'
+            );
         }
     }
 
@@ -477,6 +503,49 @@ function fetch_manual_orders(PDO $pdo): array
          ORDER BY o.created_at DESC
          LIMIT 200'
     );
+}
+
+function dashboard_table_column_exists(PDO $pdo, string $table, string $column): bool
+{
+    static $cache = [];
+    $cacheKey = $table . '.' . $column;
+    if (array_key_exists($cacheKey, $cache)) {
+        return $cache[$cacheKey];
+    }
+
+    if (!preg_match('/^[A-Za-z0-9_]+$/', $table) || !preg_match('/^[A-Za-z0-9_]+$/', $column)) {
+        $cache[$cacheKey] = false;
+        return false;
+    }
+
+    try {
+        $row = fetch_one(
+            $pdo,
+            'SELECT COUNT(*) AS column_count
+             FROM information_schema.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE()
+               AND TABLE_NAME = :table_name
+               AND COLUMN_NAME = :column_name',
+            [
+                'table_name' => $table,
+                'column_name' => $column,
+            ]
+        );
+        $cache[$cacheKey] = (int)($row['column_count'] ?? 0) > 0;
+        return $cache[$cacheKey];
+    } catch (PDOException) {
+        $cache[$cacheKey] = false;
+        return false;
+    }
+}
+
+function dashboard_sql_values(array $values, array $columns): array
+{
+    $filtered = [];
+    foreach ($columns as $column) {
+        $filtered[$column] = $values[$column] ?? null;
+    }
+    return $filtered;
 }
 
 function aggregate_open_positions(array $openLots, array $latestPrices): array

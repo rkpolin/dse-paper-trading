@@ -100,23 +100,28 @@ function ensure_stock(PDO $pdo, string $symbol, ?string $name): int
 
 function upsert_system_run(PDO $pdo, array $run): void
 {
-    $stmt = $pdo->prepare(
-        'INSERT INTO system_runs (run_id, started_at, completed_at, status, source, latest_data_date)
-         VALUES (:run_id, :started_at, :completed_at, :status, :source, :latest_data_date)
-         ON DUPLICATE KEY UPDATE
-            completed_at = VALUES(completed_at),
-            status = VALUES(status),
-            source = VALUES(source),
-            latest_data_date = VALUES(latest_data_date)'
-    );
-    $stmt->execute([
+    $values = [
         'run_id' => require_string($run, 'run_id', 80),
         'started_at' => optional_string($run, 'started_at', 40),
         'completed_at' => optional_string($run, 'completed_at', 40),
         'status' => isset($run['status']) ? require_enum_value($run, 'status', ['SUCCESS', 'FAILED', 'PARTIAL']) : 'SUCCESS',
         'source' => optional_string($run, 'source', 80, 'python_engine'),
         'latest_data_date' => optional_string($run, 'latest_data_date', 10),
-    ]);
+    ];
+
+    $optionalColumns = [];
+    foreach (['source', 'latest_data_date'] as $column) {
+        if (table_column_exists($pdo, 'system_runs', $column)) {
+            $optionalColumns[] = $column;
+        } else {
+            unset($values[$column]);
+        }
+    }
+
+    $columns = ['run_id', 'started_at', 'completed_at', 'status', ...$optionalColumns];
+    $updates = ['completed_at', 'status', ...$optionalColumns];
+    $stmt = $pdo->prepare(build_upsert_sql('system_runs', $columns, $updates));
+    $stmt->execute(filter_sql_values($values, $columns));
 }
 
 function upsert_daily_price(PDO $pdo, int $symbolId, array $row): void
@@ -211,23 +216,7 @@ function upsert_signal(PDO $pdo, int $symbolId, string $runId, array $row): void
 
 function upsert_paper_trade(PDO $pdo, int $symbolId, string $runId, array $row): void
 {
-    $stmt = $pdo->prepare(
-        'INSERT INTO paper_trades
-            (trade_id, run_id, stock_id, trade_date, side, quantity, price, gross_value, transaction_cost, net_value, realized_pl, source, entry_trade_id, reason)
-         VALUES
-            (:trade_id, :run_id, :stock_id, :trade_date, :side, :quantity, :price, :gross_value, :transaction_cost, :net_value, :realized_pl, :source, :entry_trade_id, :reason)
-         ON DUPLICATE KEY UPDATE
-            quantity = VALUES(quantity),
-            price = VALUES(price),
-            gross_value = VALUES(gross_value),
-            transaction_cost = VALUES(transaction_cost),
-            net_value = VALUES(net_value),
-            realized_pl = VALUES(realized_pl),
-            source = VALUES(source),
-            entry_trade_id = VALUES(entry_trade_id),
-            reason = VALUES(reason)'
-    );
-    $stmt->execute([
+    $values = [
         'trade_id' => require_string($row, 'trade_id', 80),
         'run_id' => $runId,
         'stock_id' => $symbolId,
@@ -242,26 +231,47 @@ function upsert_paper_trade(PDO $pdo, int $symbolId, string $runId, array $row):
         'source' => optional_string($row, 'source', 20, 'SYSTEM'),
         'entry_trade_id' => optional_string($row, 'entry_trade_id', 64),
         'reason' => optional_string($row, 'reason', 50, ''),
-    ]);
+    ];
+
+    $optionalColumns = [];
+    foreach (['source', 'entry_trade_id', 'reason'] as $column) {
+        if (table_column_exists($pdo, 'paper_trades', $column)) {
+            $optionalColumns[] = $column;
+        } else {
+            unset($values[$column]);
+        }
+    }
+
+    $columns = [
+        'trade_id',
+        'run_id',
+        'stock_id',
+        'trade_date',
+        'side',
+        'quantity',
+        'price',
+        'gross_value',
+        'transaction_cost',
+        'net_value',
+        'realized_pl',
+        ...$optionalColumns,
+    ];
+    $updates = [
+        'quantity',
+        'price',
+        'gross_value',
+        'transaction_cost',
+        'net_value',
+        'realized_pl',
+        ...$optionalColumns,
+    ];
+    $stmt = $pdo->prepare(build_upsert_sql('paper_trades', $columns, $updates));
+    $stmt->execute(filter_sql_values($values, $columns));
 }
 
 function upsert_position(PDO $pdo, int $symbolId, string $runId, array $row): void
 {
-    $stmt = $pdo->prepare(
-        'INSERT INTO positions
-            (run_id, stock_id, quantity, avg_price, current_price, market_value, cost_basis, unrealized_pl, entry_date, status)
-         VALUES
-            (:run_id, :stock_id, :quantity, :avg_price, :current_price, :market_value, :cost_basis, :unrealized_pl, :entry_date, :status)
-         ON DUPLICATE KEY UPDATE
-            quantity = VALUES(quantity),
-            avg_price = VALUES(avg_price),
-            current_price = VALUES(current_price),
-            market_value = VALUES(market_value),
-            cost_basis = VALUES(cost_basis),
-            unrealized_pl = VALUES(unrealized_pl),
-            status = VALUES(status)'
-    );
-    $stmt->execute([
+    $values = [
         'run_id' => $runId,
         'stock_id' => $symbolId,
         'quantity' => (int)require_float_value($row, 'quantity', 0),
@@ -272,7 +282,40 @@ function upsert_position(PDO $pdo, int $symbolId, string $runId, array $row): vo
         'unrealized_pl' => optional_float_value($row, 'unrealized_pl') ?? 0.0,
         'entry_date' => require_date_value($row, 'entry_date'),
         'status' => isset($row['status']) ? require_enum_value($row, 'status', ['OPEN', 'CLOSED']) : 'OPEN',
-    ]);
+    ];
+
+    $optionalColumns = [];
+    foreach (['status'] as $column) {
+        if (table_column_exists($pdo, 'positions', $column)) {
+            $optionalColumns[] = $column;
+        } else {
+            unset($values[$column]);
+        }
+    }
+
+    $columns = [
+        'run_id',
+        'stock_id',
+        'quantity',
+        'avg_price',
+        'current_price',
+        'market_value',
+        'cost_basis',
+        'unrealized_pl',
+        'entry_date',
+        ...$optionalColumns,
+    ];
+    $updates = [
+        'quantity',
+        'avg_price',
+        'current_price',
+        'market_value',
+        'cost_basis',
+        'unrealized_pl',
+        ...$optionalColumns,
+    ];
+    $stmt = $pdo->prepare(build_upsert_sql('positions', $columns, $updates));
+    $stmt->execute(filter_sql_values($values, $columns));
 }
 
 function upsert_portfolio_snapshot(PDO $pdo, string $runId, array $row): void
@@ -374,4 +417,51 @@ function insert_api_log(PDO $pdo, string $runId, string $status, string $message
         'message' => $message,
         'remote_addr' => substr((string)($_SERVER['REMOTE_ADDR'] ?? ''), 0, 45),
     ]);
+}
+
+function table_column_exists(PDO $pdo, string $table, string $column): bool
+{
+    static $cache = [];
+    $cacheKey = $table . '.' . $column;
+    if (array_key_exists($cacheKey, $cache)) {
+        return $cache[$cacheKey];
+    }
+
+    $stmt = $pdo->prepare(
+        'SELECT 1
+         FROM information_schema.columns
+         WHERE table_schema = DATABASE()
+           AND table_name = :table_name
+           AND column_name = :column_name
+         LIMIT 1'
+    );
+    $stmt->execute([
+        'table_name' => $table,
+        'column_name' => $column,
+    ]);
+    $cache[$cacheKey] = $stmt->fetchColumn() !== false;
+    return $cache[$cacheKey];
+}
+
+function build_upsert_sql(string $table, array $columns, array $updateColumns): string
+{
+    $quotedColumns = implode(', ', $columns);
+    $placeholders = implode(', ', array_map(static fn(string $column): string => ':' . $column, $columns));
+    $updates = implode(', ', array_map(static fn(string $column): string => $column . ' = VALUES(' . $column . ')', $updateColumns));
+    return sprintf(
+        'INSERT INTO %s (%s) VALUES (%s) ON DUPLICATE KEY UPDATE %s',
+        $table,
+        $quotedColumns,
+        $placeholders,
+        $updates
+    );
+}
+
+function filter_sql_values(array $values, array $columns): array
+{
+    $filtered = [];
+    foreach ($columns as $column) {
+        $filtered[$column] = $values[$column] ?? null;
+    }
+    return $filtered;
 }

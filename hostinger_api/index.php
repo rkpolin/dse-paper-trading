@@ -26,7 +26,8 @@ try {
 } catch (Throwable $exception) {
     try {
         if (isset($pdo) && isset($payload) && is_array($payload)) {
-            insert_api_log($pdo, (string)($payload['run']['run_id'] ?? ''), 'ERROR', 'Ingest failed');
+            $safeMessage = 'Ingest failed: ' . $exception::class;
+            insert_api_log($pdo, (string)($payload['run']['run_id'] ?? ''), 'ERROR', substr($safeMessage, 0, 255));
         }
     } catch (Throwable) {
         // Do not expose or chain logging failures.

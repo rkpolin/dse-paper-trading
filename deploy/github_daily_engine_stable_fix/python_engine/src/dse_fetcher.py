@@ -16,6 +16,10 @@ DSE_HEADERS = {
 }
 
 
+def empty_price_frame() -> pd.DataFrame:
+    return pd.DataFrame(columns=["symbol", "date", "open", "high", "low", "close", "volume"])
+
+
 class DseLatestPriceParser(HTMLParser):
     def __init__(self) -> None:
         super().__init__()
@@ -116,7 +120,11 @@ def fetch_latest_dse_prices(
     session.headers.update(DSE_HEADERS)
     market_date = _fetch_market_date(session, market_status_url, timeout)
     html = _get_dse_text(session, latest_url, timeout)
-    return parse_latest_dse_html(html, market_date, symbols)
+    try:
+        return parse_latest_dse_html(html, market_date, symbols)
+    except ValueError as exc:
+        print(f"Warning: latest DSE page could not be parsed; returning empty latest frame: {exc}")
+        return empty_price_frame()
 
 
 def fetch_dse_archive_prices(

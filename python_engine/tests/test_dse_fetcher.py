@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from datetime import date
 
-from src.dse_fetcher import parse_latest_dse_html
-from src.dse_fetcher import parse_dse_archive_html
+import requests
+
+from src.dse_fetcher import fetch_latest_dse_prices, parse_dse_archive_html, parse_latest_dse_html
 
 
 def test_parse_latest_dse_html_converts_share_table_to_ohlcv() -> None:
@@ -48,6 +49,27 @@ def test_parse_latest_dse_html_uses_ycp_when_latest_values_are_zero() -> None:
     assert row["low"] == 5.0
     assert row["close"] == 5.0
     assert row["volume"] == 0
+
+
+def test_fetch_latest_dse_prices_returns_empty_frame_when_parse_fails(monkeypatch) -> None:
+    class DummyResponse:
+        headers = {}
+
+    class DummySession:
+        def __init__(self) -> None:
+            self.headers = {}
+
+        def get(self, *args, **kwargs):
+            return DummyResponse()
+
+    monkeypatch.setattr(requests, "Session", DummySession)
+    monkeypatch.setattr("src.dse_fetcher._fetch_market_date", lambda *args, **kwargs: date(2026, 7, 2))
+    monkeypatch.setattr("src.dse_fetcher._get_dse_text", lambda *args, **kwargs: "<html><body>no table</body></html>")
+
+    result = fetch_latest_dse_prices("https://example.com/latest", "https://example.com/mst")
+
+    assert result.empty
+    assert list(result.columns) == ["symbol", "date", "open", "high", "low", "close", "volume"]
 
 
 def test_parse_dse_archive_html_converts_day_end_table_to_ohlcv() -> None:
